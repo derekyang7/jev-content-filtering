@@ -26,7 +26,7 @@ Apple's App Store Review Guideline 1.2 requires mobile apps that feature user-ge
 
 - **Node.js:** `>= 20.0.0` (uses native `fetch`, `AbortController`, and `node:crypto`)
 - **TypeScript:** `>= 5.0`
-- **TypeSafe AI API Key (`TYPESAFE_API_KEY`):** Required at runtime for Tier 3 Jev evaluations (all unit and integration tests run offline without a key).
+- **Jev Upstream API Key (`TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`):** Required at runtime for Tier 3 Jev evaluations (all unit and integration tests run offline without a key).
 
 ---
 
@@ -45,7 +45,9 @@ Apple's App Store Review Guideline 1.2 requires mobile apps that feature user-ge
 
    | Environment Variable | Default | Description |
    |---|---|---|
-   | `TYPESAFE_API_KEY` | *(required for Tier 3)* | Upstream TypeSafe AI API key used by the server to call Jev. |
+   | `TYPESAFE_API_KEY` | *(required if not using OpenRouter)* | Upstream TypeSafe AI API key (`https://api.typesafe.ai/v1/systemone`, model `jev-latest`). |
+   | `OPENROUTER_API_KEY` | *(required if not using TypeSafe)* | Upstream OpenRouter API key (`https://openrouter.ai/api/v1/systemone`, model `typesafe/jev-latest`). |
+   | `JEV_PROVIDER` | *(auto-detected)* | Optional explicit provider override (`"typesafe"` or `"openrouter"`). |
    | `MODERATION_API_KEYS` | *(empty = open)* | Comma-separated client API keys (`app_name:secret` or `secret`), e.g. `ios_app:app_key_123,android_app:app_key_456`. |
    | `PORT` | `3000` | HTTP server listening port. |
    | `MAX_TEXT_LENGTH` | `2000` | Maximum allowed character length for `text`. |

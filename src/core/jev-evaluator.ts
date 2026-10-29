@@ -23,7 +23,10 @@ export interface SystemOneClient {
   }): Promise<SystemOneResponse>;
 }
 
+export type JevProvider = "typesafe" | "openrouter";
+
 export interface CreateJevEvaluatorOptions {
+  provider?: JevProvider;
   apiKey?: string;
   baseUrl?: string;
   model?: string;
@@ -31,13 +34,38 @@ export interface CreateJevEvaluatorOptions {
   client?: SystemOneClient;
 }
 
+function resolveProvider(options: CreateJevEvaluatorOptions): JevProvider {
+  if (options.provider === "openrouter" || options.provider === "typesafe") {
+    return options.provider;
+  }
+
+  const envProvider = process.env.JEV_PROVIDER?.trim().toLowerCase();
+  if (envProvider === "openrouter" || envProvider === "typesafe") {
+    return envProvider;
+  }
+
+  if (options.apiKey) {
+    return options.apiKey.startsWith("sk-or-") ? "openrouter" : "typesafe";
+  }
+
+  if (process.env.TYPESAFE_API_KEY) {
+    return "typesafe";
+  }
+
+  if (process.env.OPENROUTER_API_KEY) {
+    return "openrouter";
+  }
+
+  return "typesafe";
+}
+
 function createNoulQuestion(proposition: string): {
   type: "noul";
-  question: string;
+  instructions: string;
 } {
   return {
     type: "noul",
-    question: proposition
+    instructions: proposition
   };
 }
 
@@ -49,12 +77,25 @@ export class TypeSafeJevEvaluator implements JevEvaluator {
   private readonly client?: SystemOneClient;
 
   constructor(options: CreateJevEvaluatorOptions = {}) {
-    this.apiKey = options.apiKey ?? process.env.TYPESAFE_API_KEY ?? "";
-    this.baseUrl =
-      options.baseUrl ??
-      process.env.TYPESAFE_BASE_URL ??
-      "https://api.typesafe.ai/v1/system-one";
-    this.model = options.model ?? "jev-latest";
+    const provider = resolveProvider(options);
+
+    if (provider === "openrouter") {
+      this.apiKey = options.apiKey ?? process.env.OPENROUTER_API_KEY ?? "";
+      this.baseUrl =
+        options.baseUrl ??
+        process.env.OPENROUTER_BASE_URL ??
+        "https://openrouter.ai/api/v1/systemone";
+      this.model =
+        options.model ?? process.env.JEV_MODEL ?? "typesafe/jev-latest";
+    } else {
+      this.apiKey = options.apiKey ?? process.env.TYPESAFE_API_KEY ?? "";
+      this.baseUrl =
+        options.baseUrl ??
+        process.env.TYPESAFE_BASE_URL ??
+        "https://api.typesafe.ai/v1/systemone";
+      this.model = options.model ?? process.env.JEV_MODEL ?? "jev-latest";
+    }
+
     this.timeoutMs =
       options.timeoutMs ?? Number(process.env.JEV_TIMEOUT_MS ?? 3_000);
     this.client = options.client;
@@ -72,8 +113,8 @@ export class TypeSafeJevEvaluator implements JevEvaluator {
     const state = JSON.stringify(statePayload);
     const questions: Record<
       ModerationCategory,
-      { type: "noul"; question: string }
-    > = {} as Record<ModerationCategory, { type: "noul"; question: string }>;
+      { type: "noul"; instructions: string }
+    > = {} as Record<ModerationCategory, { type: "noul"; instructions: string }>;
 
     for (const category of MODERATION_CATEGORIES) {
       questions[category] = createNoulQuestion(
@@ -94,7 +135,7 @@ export class TypeSafeJevEvaluator implements JevEvaluator {
 
   private async executeWithTimeout(
     state: string,
-    questions: Record<string, { type: "noul"; question: string }>
+    questions: Record<string, { type: "noul"; instructions: string }>
   ): Promise<SystemOneResponse> {
     if (this.client) {
       return await Promise.race([
@@ -113,7 +154,9 @@ export class TypeSafeJevEvaluator implements JevEvaluator {
     }
 
     if (!this.apiKey) {
-      throw new Error("Missing TYPESAFE_API_KEY for Jev evaluation");
+      throw new Error(
+        "Missing TYPESAFE_API_KEY or OPENROUTER_API_KEY for Jev evaluation"
+      );
     }
 
     const controller = new AbortController();
