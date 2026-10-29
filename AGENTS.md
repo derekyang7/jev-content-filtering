@@ -12,7 +12,7 @@
 - `src/server/` wraps `src/core/` in Hono routes (`POST /v1/moderate`, `GET /health`) and middleware.
 - All relative imports in `src/` and `tests/` must use `.js` extensions (`"moduleResolution": "NodeNext"`).
 - `tsconfig.json` excludes `tests/` from `npm run build`; only `src/**/*` is compiled to `dist/`.
-- `@typesafe-ai/sdk` is intentionally omitted from `package.json`; `src/core/jev-evaluator.ts` calls `https://api.typesafe.ai/v1/system-one` via native `fetch` or accepts an injected `SystemOneClient` (`options.client`).
+- `@typesafe-ai/sdk` is intentionally omitted from `package.json`; `src/core/jev-evaluator.ts` calls TypeSafe (`https://api.typesafe.ai/v1/systemone`) or OpenRouter (`https://openrouter.ai/api/v1/systemone`) via native `fetch`, or accepts an injected `SystemOneClient` (`options.client`).
 
 ## Pipeline Invariants
 - Order of execution in `src/core/moderator.ts` is strictly Tier 1 (`prefilter`) -> Tier 2 (`cache`) -> Tier 3 (`jev-evaluator`).
